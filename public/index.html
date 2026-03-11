@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Life Line Rural Hospital X-Ray Center</title>
+
+<style>
+
+body{
+font-family:Arial;
+padding:40px;
+background:#f4f6f9;
+}
+
+h2{
+margin-bottom:20px;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.addbtn{
+background:#28a745;
+}
+
+input{
+padding:8px;
+margin:5px;
+border:1px solid #ccc;
+border-radius:4px;
+}
+
+button{
+padding:8px 12px;
+margin:5px;
+border:none;
+border-radius:4px;
+background:#007bff;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+opacity:0.9;
+}
+
+.deletebtn{
+background:#dc3545;
+}
+
+table{
+border-collapse:collapse;
+width:100%;
+margin-top:20px;
+background:white;
+}
+
+th{
+background:#343a40;
+color:white;
+padding:10px;
+}
+
+td{
+border:1px solid #ddd;
+padding:8px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="topbar">
+<h2>Life Line Rural Hospital X-Ray Center</h2>
+
+<button class="addbtn" onclick="window.location='/add_patient.html'">
+Add Patient
+</button>
+</div>
+
+
+<h3>Search Patient</h3>
+
+<input id="keyword" placeholder="Enter patient name or phone">
+
+<button onclick="searchPatient()">Search</button>
+
+<div id="results"></div>
+
+
+<h3>Patients</h3>
+
+<div id="patients"></div>
+
+<button onclick="prevPage()">Previous</button>
+<button onclick="nextPage()">Next</button>
+
+
+<script>
+
+let page = 1;
+
+loadPatients();
+
+
+async function loadPatients(){
+
+const res = await fetch("/patients/page/" + page);
+
+const data = await res.json();
+
+let html = "<table>";
+
+html += "<tr><th>ID</th><th>Name</th><th>Phone</th><th>Action</th></tr>";
+
+data.forEach(p => {
+
+html += `
+<tr>
+<td>${p.id}</td>
+<td>${p.name}</td>
+<td>${p.phone}</td>
+<td>
+<button onclick="openPatient(${p.id})">Open</button>
+<button class="deletebtn" onclick="deletePatient(${p.id})">Delete</button>
+</td>
+</tr>
+`;
+
+});
+
+html += "</table>";
+
+document.getElementById("patients").innerHTML = html;
+
+}
+
+
+function nextPage(){
+page++;
+loadPatients();
+}
+
+function prevPage(){
+if(page>1){
+page--;
+loadPatients();
+}
+}
+
+
+function openPatient(id){
+window.location="/patient.html?id="+id;
+}
+
+
+async function deletePatient(id){
+
+if(!confirm("Delete this patient?")) return;
+
+await fetch("/patients/"+id,{
+method:"DELETE"
+});
+
+loadPatients();
+
+}
+
+
+async function searchPatient(){
+
+const keyword = document.getElementById("keyword").value;
+
+const res = await fetch("/patients/search/"+keyword);
+
+const data = await res.json();
+
+let html = "<table>";
+
+html += "<tr><th>ID</th><th>Name</th><th>Phone</th><th>Action</th></tr>";
+
+data.forEach(p => {
+
+html += `
+<tr>
+<td>${p.id}</td>
+<td>${p.name}</td>
+<td>${p.phone}</td>
+<td>
+<button onclick="openPatient(${p.id})">Open</button>
+<button class="deletebtn" onclick="deletePatient(${p.id})">Delete</button>
+</td>
+</tr>
+`;
+
+});
+
+html += "</table>";
+
+document.getElementById("results").innerHTML = html;
+
+}
+
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Patient Billing</title>
+
+<style>
+
+body{
+font-family:Arial;
+padding:40px;
+}
+
+input{
+padding:8px;
+margin:5px;
+}
+
+button{
+padding:8px 12px;
+margin:5px;
+}
+
+table{
+border-collapse:collapse;
+width:100%;
+margin-top:20px;
+}
+
+th,td{
+border:1px solid black;
+padding:8px;
+text-align:left;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>Patient Billing</h2>
+
+<div id="patientInfo"></div>
+
+<button onclick="editPatient()">Edit Patient</button>
+
+<h3>Add Test</h3>
+
+<input id="test_name" placeholder="Test Name">
+<input id="price" placeholder="Price">
+<input id="discount" placeholder="Discount">
+
+<button onclick="addTest()">Add Test</button>
+
+<h3>Tests</h3>
+
+<table id="testsTable">
+
+<tr>
+<th>Test</th>
+<th>Price</th>
+<th>Discount</th>
+<th>Amount</th>
+<th>Action</th>
+</tr>
+
+</table>
+
+<h3>Total: ₹ <span id="total">0</span></h3>
+
+<button onclick="printBill()">Print Bill</button>
+
+<script>
+
+let patientId;
+
+
+
+function getPatientId(){
+
+const params = new URLSearchParams(window.location.search);
+
+patientId = params.get("id");
+
+loadPatient();
+
+}
+
+
+
+async function loadPatient(){
+
+const res = await fetch("/patients/full/" + patientId);
+
+const data = await res.json();
+
+const p = data.patient;
+
+
+
+document.getElementById("patientInfo").innerHTML = `
+<h3>Patient Info</h3>
+
+<p><b>Date:</b> ${new Date().toLocaleDateString()}</p>
+
+<p><b>Name:</b> ${p.name}</p>
+<p><b>Gender:</b> ${p.gender || ""}</p>
+<p><b>Phone:</b> ${p.phone}</p>
+<p><b>Address:</b> ${p.address || ""}</p>
+<p><b>Doctor:</b> ${p.referring_doctor || ""}</p>
+
+`;
+
+
+
+document.getElementById("total").innerText = data.total;
+
+loadTests(data.tests);
+
+}
+
+
+
+function loadTests(tests){
+
+let table = document.getElementById("testsTable");
+
+table.innerHTML = `
+<tr>
+<th>Test</th>
+<th>Price</th>
+<th>Discount</th>
+<th>Amount</th>
+<th>Action</th>
+</tr>
+`;
+
+tests.forEach(t => {
+
+let row = `
+<tr>
+
+<td>${t.test_name}</td>
+
+<td>${t.price}</td>
+
+<td>${t.discount}</td>
+
+<td>${t.amount}</td>
+
+<td>
+
+<button onclick="editTest(${t.id},'${t.test_name}',${t.price},${t.discount})">Edit</button>
+
+<button onclick="deleteTest(${t.id})">Delete</button>
+
+</td>
+
+</tr>
+`;
+
+table.innerHTML += row;
+
+});
+
+}
+
+
+
+async function addTest(){
+
+const test_name = document.getElementById("test_name").value;
+
+const price = parseInt(document.getElementById("price").value);
+
+const discount = parseInt(document.getElementById("discount").value) || 0;
+
+const res = await fetch("/bills",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body: JSON.stringify({
+patient_id: patientId,
+test_name,
+price,
+discount
+})
+
+});
+
+await res.json();
+
+location.reload();
+
+}
+
+
+
+async function deleteTest(id){
+
+await fetch("/bills/"+id,{
+method:"DELETE"
+});
+
+location.reload();
+
+}
+
+
+
+async function editTest(id,test_name,price,discount){
+
+const newTest = prompt("Test Name", test_name);
+
+const newPrice = prompt("Price", price);
+
+const newDiscount = prompt("Discount", discount);
+
+await fetch("/bills/"+id,{
+
+method:"PUT",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body: JSON.stringify({
+test_name:newTest,
+price:parseInt(newPrice),
+discount:parseInt(newDiscount)
+})
+
+});
+
+location.reload();
+
+}
+
+
+
+async function editPatient(){
+
+const res = await fetch("/patients/full/" + patientId);
+
+const data = await res.json();
+
+const p = data.patient;
+
+const name = prompt("Patient Name", p.name);
+
+const phone = prompt("Phone", p.phone);
+
+const address = prompt("Address", p.address);
+
+const doctor = prompt("Referring Doctor", p.referring_doctor);
+
+await fetch("/patients/"+patientId,{
+
+method:"PUT",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body: JSON.stringify({
+name:name,
+phone:phone,
+address:address,
+referring_doctor:doctor
+})
+
+});
+
+location.reload();
+
+}
+
+
+
+function printBill(){
+
+window.open("/print/bill/" + patientId);
+
+}
+
+
+
+window.onload = getPatientId;
+
+</script>
+
+</body>
+
+</html>
